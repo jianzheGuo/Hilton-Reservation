@@ -2,12 +2,13 @@ import { Box, TextField, Select, MenuItem, Button } from '@suid/material';
 import { createSignal } from 'solid-js';
 import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
+import { userFromStore } from '../../stores/user.store';
 
 export default function Home() {
   const [formData, setFormData] = createSignal({
-    name: '',
-    phone: '',
-    email: '',
+    name: userFromStore.username,
+    phone: userFromStore.phone,
+    email: userFromStore.email,
     arrivalTime: '',
     tableSize: 1
   });
@@ -79,7 +80,7 @@ export default function Home() {
             required
           >
             {[1,2,3,4,5,6,7,8].map(size => (
-              <MenuItem value={size}>{size}人</MenuItem>
+              <MenuItem value={size}>{size} person</MenuItem>
             ))}
           </Select>
           

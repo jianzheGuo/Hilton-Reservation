@@ -9,7 +9,16 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signIn(phone: string, pass: string): Promise<{ access_token: string }> {
+  async signIn(
+    phone: string,
+    pass: string,
+  ): Promise<{
+    id: string;
+    username: string;
+    phone: string;
+    email: string;
+    access_token: string;
+  }> {
     const user = await this.userService.getUserByPhone(phone);
     if (user?.password !== pass) {
       throw new UnauthorizedException();
@@ -21,6 +30,10 @@ export class AuthService {
       email: user.email,
     };
     return {
+      id: user._id.toString(),
+      username: user.name,
+      phone: user.phone_number,
+      email: user.email,
       access_token: await this.jwtService.signAsync(payload),
     };
   }

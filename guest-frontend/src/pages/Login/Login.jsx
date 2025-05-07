@@ -6,6 +6,7 @@ import { useContext } from 'solid-js';
 import {ApiContext} from '../../contexts/ApiContext';
 import { useAlert } from '../../components/Alert/Alert';
 import { useNavigate } from '@solidjs/router';
+import { updateUserFromStore } from '../../stores/user.store';
 
 export default function Login() {
   const {fetchPlus} = useContext(ApiContext);
@@ -126,6 +127,7 @@ export default function Login() {
       );
       if (response.access_token) {
         sessionStorage.setItem('jwt', response.access_token);
+        updateUserFromStore(response);
         navigate('/home', { replace: true });
       } else {
         showAlert('error', 'Login failed. Please check your credentials and try again.');

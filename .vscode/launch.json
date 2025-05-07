@@ -23,7 +23,10 @@
       "runtimeExecutable": "node",
       "runtimeArgs": [
         "--inspect"
-      ]
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
     },
   ]
 }

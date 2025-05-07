@@ -4,6 +4,9 @@ import { render } from "solid-js/web";
 import "./index.css";
 import App from "./App";
 
+import { ApiContext } from './contexts/ApiContext';
+import fetchPlus from './utils/fetchPlus';
+
 const root = document.getElementById("root");
 
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
@@ -12,4 +15,10 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
-render(() => <App />, root);
+render(() => {
+  return (
+    <ApiContext.Provider value={{ fetchPlus }}>
+      <App />
+    </ApiContext.Provider>
+  );
+}, root);

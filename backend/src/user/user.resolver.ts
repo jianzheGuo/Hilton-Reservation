@@ -1,5 +1,5 @@
 import { Query, Resolver, Args } from "@nestjs/graphql";
-import { User } from "../../schemas/user.schema";
+import { User } from "../schemas/user.schema";
 import { UserService } from "./user.service";
 
 @Resolver(() => User)

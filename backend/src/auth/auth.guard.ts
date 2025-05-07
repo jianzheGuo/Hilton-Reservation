@@ -6,13 +6,27 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
+import { GqlExecutionContext } from "@nestjs/graphql";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    let request;
+    const contextType = context.getType();
+
+    if (contextType === "http") {
+      request = context.switchToHttp().getRequest();
+    } else {
+      const gqlContext = GqlExecutionContext.create(context);
+      request = gqlContext.getContext().req;
+    }
+
+    if (!request) {
+      throw new UnauthorizedException("Can't determine request type");
+    }
+
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();

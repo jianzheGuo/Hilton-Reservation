@@ -1,8 +1,24 @@
-import { Box, TextField, Select, MenuItem, Button } from '@suid/material';
+import { Box, TextField, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText } from '@suid/material';
 import { createSignal } from 'solid-js';
 import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
 import { userFromStore } from '../../stores/user.store';
+import { useAlert } from '../../components/Alert/Alert';
+// import { useMutation } from 'urql';
+import { client } from '../../utils/urql';
+
+const CREATE_RESERVATION = `
+  mutation CreateReservation($input: CreateReservationInput!) {
+    createReservation(createReservationInput: $input) {
+      _id
+      guest_name
+      guest_phone
+      table_size
+      expected_arrive_time
+      created_user
+    }
+  }
+`;
 
 export default function Home() {
   const [formData, setFormData] = createSignal({
@@ -12,11 +28,23 @@ export default function Home() {
     arrivalTime: '',
     tableSize: 1
   });
-
-  const handleSubmit = (e) => {
+  const [successDialogOpen, setSuccessDialogOpen] = createSignal(false);
+  const { showAlert, AlertComponent } = useAlert();
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData());
-    // 这里可以添加表单提交逻辑
+    try {
+      const result = await client.mutation(CREATE_RESERVATION, { input: {...formData(), createdUser: userFromStore.id}, });
+      console.log(result); 
+      
+      if (result.data?.createReservation) {
+        setSuccessDialogOpen(true);
+      } else {
+        showAlert('error', 'Reservation failed. Please try again.');
+      }
+    } catch (error) {
+      showAlert('error', 'Network error. Please check your connection.');
+    }
   };
 
   return (
@@ -90,6 +118,39 @@ export default function Home() {
         </Box>
       </Box>
       <AppFooter />
+      
+      <Dialog open={successDialogOpen()} onClose={() => setSuccessDialogOpen(false)}>
+        <DialogTitle>Reservation Confirmed</DialogTitle>
+        <DialogContent>
+          <List>
+            <ListItem>
+              <ListItemText primary="Guest Name" secondary={formData().name} />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Phone" secondary={formData().phone} />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Arrival Time" secondary={formData().arrivalTime} />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Table Size" secondary={`${formData().tableSize} person`} />
+            </ListItem>
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSuccessDialogOpen(false)}>Close</Button>
+          <Button 
+            onClick={() => {
+              setSuccessDialogOpen(false);
+            }}
+            sx={{ color: '#003580' }}
+          >
+            My Reservations
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <AlertComponent />
     </Box>
   );
 }

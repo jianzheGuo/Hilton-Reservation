@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
-import { UserModule } from "../models/user/user.module";
+import { UserModule } from "../user/user.module";
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { UserModule } from "../models/user/user.module";
       useFactory: (configService: ConfigService) => ({
         global: true,
         secret: configService.get("JWT_SECRET"),
-        signOptions: { expiresIn: "60s" },
+        signOptions: { expiresIn: "8h" },
       }),
       inject: [ConfigService],
     }),

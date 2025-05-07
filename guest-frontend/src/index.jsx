@@ -7,6 +7,9 @@ import App from "./App";
 import { ApiContext } from './contexts/ApiContext';
 import fetchPlus from './utils/fetchPlus';
 
+// import { ApolloProvider } from '@apollo/client';
+// import { client } from './utils/apollo';
+
 const root = document.getElementById("root");
 
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
@@ -18,7 +21,9 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 render(() => {
   return (
     <ApiContext.Provider value={{ fetchPlus }}>
-      <App />
+      {/* <ApolloProvider client={client}> */}
+        <App />
+      {/* </ApolloProvider> */}
     </ApiContext.Provider>
   );
 }, root);

@@ -1,6 +1,8 @@
-import { Controller, Get, Post } from "@nestjs/common";
+import { Controller, Get, Post, Body } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { User } from "../../schemas/user.schema";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { logError } from "../../../error_handler/winston";
 
 @Controller("users")
 export class UserController {
@@ -11,8 +13,16 @@ export class UserController {
     return this.userService.getUsers();
   }
 
-  @Post("createTestUser")
-  createTestUser(): Promise<User> {
-    return this.userService.createTestUser();
+  @Post("createUser")
+  async createUser(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<{ data: User } | { error: string }> {
+    try {
+      const user = await this.userService.createUser(createUserDto);
+      return { data: user };
+    } catch (e) {
+      logError(e);
+      return { error: e?.message || "create user failed" };
+    }
   }
 }

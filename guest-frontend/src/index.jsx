@@ -17,9 +17,7 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 
 render(() => {
   return (
-    <ApiContext.Provider value={{
-      fetchPlus
-    }}>
+    <ApiContext.Provider value={{ fetchPlus }}>
       <App />
     </ApiContext.Provider>
   );

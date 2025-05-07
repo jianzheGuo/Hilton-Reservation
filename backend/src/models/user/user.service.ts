@@ -15,16 +15,30 @@ export class UserService {
     });
   }
 
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
-    return this.userModel.create({
+  async createUser(
+    createUserDto: CreateUserDto,
+  ): Promise<{ id: string; username: string; email: string; phone: string }> {
+    const user = new this.userModel({
+      _id: new Types.ObjectId(),
       name: createUserDto.username,
       password: createUserDto.password,
       email: createUserDto.email,
       phone_number: createUserDto.phone,
     });
+    const savedUser = await user.save();
+    return {
+      id: savedUser._id.toString(),
+      username: savedUser.name,
+      email: savedUser.email,
+      phone: savedUser.phone_number,
+    };
   }
 
   async getUserById(id: string): Promise<User | null> {
     return this.userModel.findById(new Types.ObjectId(id)).exec();
+  }
+
+  async getUserByPhone(phone: string): Promise<User | null> {
+    return this.userModel.findOne({ phone_number: phone }).exec();
   }
 }

@@ -16,7 +16,10 @@ export class UserController {
   @Post("createUser")
   async createUser(
     @Body() createUserDto: CreateUserDto,
-  ): Promise<{ data: User } | { error: string }> {
+  ): Promise<
+    | { data: { id: string; username: string; email: string; phone: string } }
+    | { error: string }
+  > {
     try {
       const user = await this.userService.createUser(createUserDto);
       return { data: user };

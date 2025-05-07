@@ -5,9 +5,9 @@ import { Types } from "mongoose";
 @Schema()
 @ObjectType()
 export class User {
-  // @Prop({ type: Types.ObjectId })
-  // @Field()
-  // _id: string;
+  @Prop({ type: Types.ObjectId })
+  @Field()
+  _id: string;
 
   @Prop({ required: true })
   @Field()

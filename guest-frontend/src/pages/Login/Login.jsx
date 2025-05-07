@@ -1,14 +1,18 @@
 import { Box, TextField, Button, Typography, Dialog, DialogTitle, DialogContent } from '@suid/material';
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal } from 'solid-js';
 import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
 import { useContext } from 'solid-js';
 import {ApiContext} from '../../contexts/ApiContext';
+import { useAlert } from '../../components/Alert/Alert';
+import { useNavigate } from '@solidjs/router';
 
 export default function Login() {
   const {fetchPlus} = useContext(ApiContext);
+  const navigate = useNavigate();
+
   const [formData, setFormData] = createSignal({
-    username: '',
+    phone: '',
     password: ''
   });
   const [joinDialogOpen, setJoinDialogOpen] = createSignal(false);
@@ -19,20 +23,121 @@ export default function Login() {
     phone: '',
     email: ''
   });
+  const [isAllFieldsFilled, setIsAllFieldsFilled] = createSignal(false);
+  const [errorMsg, setErrorMsg] = createSignal({});
+  const { showAlert, AlertComponent } = useAlert();
 
-  const handleSubmit = (e) => {
+  createEffect(() => {
+    const allFieldsFilled = Object.values(registerData()).every(field => field.trim() !== '');
+    setIsAllFieldsFilled(allFieldsFilled);
+  })
+
+  createEffect(() => {
+    if(joinDialogOpen() == false) {
+      setRegisterData({
+        username: '',
+        password: '',
+        confirmPassword: '',
+        phone: '',
+        email: ''
+      });
+    }
+  })
+
+  const validatePassword = (password) => {
+    const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+    return re.test(password);
+  }
+
+  const comparePasswords = (password, confirmPassword) => {
+    return password === confirmPassword;
+  };
+
+  const validatePhone = (phone) => {
+    const re = /^[0-9]{11}$/;
+    return re.test(phone);
+  };
+
+  const validateEmail = (email) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  };
+
+
+
+  const handleFieldChange = (field, value) => {
+    let temp = {...errorMsg()}
+    setRegisterData({...registerData(), [field]: value});
+    switch(field) {
+      case 'password':
+        if(!validatePassword(value)) {
+          temp['password'] = 'Password must contain at least 8 characters, including at least 1 uppercase letter, 1 lowercase letter and 1 number'
+          setErrorMsg(temp);
+        } else {
+          temp['password'] = '';
+          setErrorMsg(temp);
+        }
+        break;
+      case 'confirmPassword':
+        if(!comparePasswords(value, registerData().password)) {
+          temp['confirmPassword'] = 'Passwords do not match'
+          setErrorMsg(temp);
+        } else {
+          temp['confirmPassword'] = '';
+          setErrorMsg(temp);
+        }
+        break;
+      case 'phone':
+        if(!validatePhone(value)) {
+          temp['phone'] = 'Phone number must be 11 digits'
+          setErrorMsg(temp);
+        } else {
+          temp['phone'] = '';
+          setErrorMsg(temp);
+        }
+        break;
+      case 'email':
+        if(!validateEmail(value)) {
+          temp['email'] = 'Invalid email address'
+          setErrorMsg(temp);
+        } else {
+          temp['email'] = '';
+          setErrorMsg(temp);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login submitted:', formData());
+    try {
+      const response = await fetchPlus(
+        '/auth/login', 
+        'POST', 
+        {
+          'Content-Type': 'application/json',
+        },
+        {
+          password: formData().password,
+          phone: formData().phone,
+        }
+      );
+      if (response.access_token) {
+        sessionStorage.setItem('jwt', response.access_token);
+        navigate('/home', { replace: true });
+      } else {
+        showAlert('error', 'Login failed. Please check your credentials and try again.');
+      }
+    } catch (error) {
+      console.error('login error:', error);
+      showAlert('error', 'Login failed. Please try again later. If this problem persists, please contact our support team.');
+    }
   };
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    
-    // 验证密码是否匹配
-    if (registerData().password !== registerData().confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
 
     try {
       const response = await fetchPlus(
@@ -49,21 +154,12 @@ export default function Login() {
         }
       );
 
-      // const data = await response.json();
-      
-      // 存储用户信息到sessionStorage
-      sessionStorage.setItem('user', JSON.stringify({
-        username: registerData().username,
-        phone: registerData().phone,
-        email: registerData().email
-      }));
-
       setJoinDialogOpen(false);
-      alert('Registration successful!');
+      showAlert('success', 'Registration successful! You can now sign in.');
       
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      showAlert('error', 'Registration failed. Please try again.');
     }
   };
 
@@ -99,9 +195,9 @@ export default function Login() {
           </Typography>
           
           <TextField
-            label="Username"
-            value={formData().username}
-            onChange={(e) => setFormData({...formData(), username: e.target.value})}
+            label="Phone"
+            value={formData().phone}
+            onChange={(e) => setFormData({...formData(), phone: e.target.value})}
             required
             fullWidth
           />
@@ -155,36 +251,44 @@ export default function Login() {
               label="Password"
               type="password"
               value={registerData().password}
-              onChange={(e) => setRegisterData({...registerData(), password: e.target.value})}
+              onChange={(e) => handleFieldChange('password', e.target.value)}
               required
               fullWidth
+              error={!!errorMsg().password}
+              helperText={errorMsg().password}
             />
             
             <TextField
               label="Confirm Password"
               type="password"
               value={registerData().confirmPassword}
-              onChange={(e) => setRegisterData({...registerData(), confirmPassword: e.target.value})}
+              onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
               required
               fullWidth
+              error={!!errorMsg().confirmPassword}
+              helperText={errorMsg().confirmPassword}
             />
             
             <TextField
               label="Phone"
               type="tel"
               value={registerData().phone}
-              onChange={(e) => setRegisterData({...registerData(), phone: e.target.value})}
+              onChange={(e) => handleFieldChange('phone', e.target.value)}
               required
               fullWidth
+              error={!!errorMsg().phone}
+              helperText={errorMsg().phone}
             />
             
             <TextField
               label="Email"
               type="email"
               value={registerData().email}
-              onChange={(e) => setRegisterData({...registerData(), email: e.target.value})}
+              onChange={(e) => handleFieldChange('email', e.target.value)}
               required
               fullWidth
+              error={!!errorMsg().email}
+              helperText={errorMsg().email}
             />
             
             <Button 
@@ -196,12 +300,16 @@ export default function Login() {
                 backgroundColor: '#003580',
                 '&:hover': { backgroundColor: '#002a5e' }
               }}
+              disabled={!isAllFieldsFilled()}
             >
               Join Now
             </Button>
           </Box>
         </DialogContent>
+
       </Dialog>
+
+      <AlertComponent />
 
       <AppFooter />
     </Box>

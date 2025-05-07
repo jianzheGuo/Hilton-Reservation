@@ -18,6 +18,8 @@
     "@solidjs/router": "^0.15.3",
     "@suid/icons-material": "^0.8.1",
     "@suid/material": "^0.18.0",
+    "@urql/core": "^5.1.1",
+    "graphql": "^16.11.0",
     "solid-js": "^1.9.5"
   }
 }

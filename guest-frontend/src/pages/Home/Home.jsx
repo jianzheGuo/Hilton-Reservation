@@ -4,7 +4,7 @@ import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
 import { userFromStore } from '../../stores/user.store';
 import { useAlert } from '../../components/Alert/Alert';
-// import { useMutation } from 'urql';
+import { useNavigate } from '@solidjs/router';
 import { client } from '../../utils/urql';
 
 const CREATE_RESERVATION = `
@@ -30,6 +30,7 @@ export default function Home() {
   });
   const [successDialogOpen, setSuccessDialogOpen] = createSignal(false);
   const { showAlert, AlertComponent } = useAlert();
+  const navigate = useNavigate();
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -142,6 +143,7 @@ export default function Home() {
           <Button 
             onClick={() => {
               setSuccessDialogOpen(false);
+              navigate('/reservation')
             }}
             sx={{ color: '#003580' }}
           >

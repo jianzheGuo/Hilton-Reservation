@@ -42,6 +42,14 @@ export class Reservation {
 
   @Field()
   updated_user: string;
+
+  @Prop({ required: true, default: "Pending" })
+  @Field()
+  status: string;
+
+  @Prop({ required: true, default: false })
+  @Field()
+  is_deleted: boolean;
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);

@@ -1,6 +1,8 @@
 import { Box, Typography, Button } from '@suid/material';
+import { useNavigate } from '@solidjs/router';
 
 export default function AppHeader() {
+  const navigate = useNavigate();
   return (
     <Box component="header" sx={{
       display: 'flex',
@@ -19,22 +21,13 @@ export default function AppHeader() {
         Hilton
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginRight: '35px' }}>
-        <Button color="inherit" sx={{ 
-          textTransform: 'none',
-          minWidth: 'auto',
-          padding: '6px 8px',
-          fontSize: '0.875rem'
-        }}>
-          Join
-        </Button>
-        <Box component="span" sx={{ opacity: 0.5 }}>|</Box>
         <Button color="inherit" sx={{
           textTransform: 'none',
           minWidth: 'auto',
           padding: '6px 8px',
           fontSize: '0.875rem'
-        }}>
-          Sign In
+        }} onClick={() => navigate('/reservation')}>
+          My Reservations
         </Button>
       </Box>
     </Box>

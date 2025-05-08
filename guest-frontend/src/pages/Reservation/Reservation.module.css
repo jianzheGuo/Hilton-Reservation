@@ -1,0 +1,21 @@
+.reservationTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHeader {
+  background-color: #003580;
+  color: white;
+}
+
+.actionButton {
+  margin: 0 5px;
+}
+
+.editButton {
+  color: #1976d2;
+}
+
+.cancelButton {
+  color: #d32f2f;
+}

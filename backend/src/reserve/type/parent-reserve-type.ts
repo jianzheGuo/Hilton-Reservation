@@ -22,4 +22,7 @@ export class ParentReserveType {
 
   @Field()
   created_user: string;
+
+  @Field()
+  status: string;
 }

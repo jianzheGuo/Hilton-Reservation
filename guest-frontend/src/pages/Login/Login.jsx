@@ -127,6 +127,12 @@ export default function Login() {
       );
       if (response.access_token) {
         sessionStorage.setItem('jwt', response.access_token);
+        sessionStorage.setItem('userData', JSON.stringify({
+          id: response.id,
+          username: response.username,
+          phone: response.phone,
+          email: response.email
+        }));
         updateUserFromStore(response);
         navigate('/home', { replace: true });
       } else {

@@ -1,4 +1,4 @@
-import { Mutation, Resolver, Args, Query } from "@nestjs/graphql";
+import { Mutation, Resolver, Args, Query, Context } from "@nestjs/graphql";
 import { ReserveService } from "./reserve.service";
 import { CreateReservationInput } from "./dto/create-reservation.dto";
 import { ParentReserveType } from "./type/parent-reserve-type";
@@ -6,6 +6,7 @@ import { CancelReserveType } from "./type/cancel-reserve-type";
 import { UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { UpdateReservationInput } from "./dto/update-reservation.dto";
+import { showReserveType } from "./type/show-reserve-type";
 
 @Resolver(() => ParentReserveType)
 export class ReserveResolver {
@@ -51,14 +52,28 @@ export class ReserveResolver {
     @Args("id") id: string,
     @Args("updateReservationInput")
     updateReservationInput: UpdateReservationInput,
+    @Context()
+    context: { req: { user: any; headers: { authorization: string } } },
   ): Promise<ParentReserveType> {
     try {
+      const user = context.req.user;
       return await this.reserveService.updateReservation({
         id,
         updateReservationInput,
+        user_id: user.id,
       });
     } catch (error) {
       throw new Error(`Failed to update reservation: ${error.message}`);
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Query(() => [showReserveType], { name: "getAdminReservations" })
+  async getAdminReservations(): Promise<showReserveType[]> {
+    try {
+      return await this.reserveService.getAdminReservations();
+    } catch (error) {
+      throw new Error(`Fail to get reservation: ${error.message}`);
     }
   }
 }

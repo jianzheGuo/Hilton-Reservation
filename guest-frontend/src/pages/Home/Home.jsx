@@ -6,6 +6,7 @@ import { userFromStore } from '../../stores/user.store';
 import { useAlert } from '../../components/Alert/Alert';
 import { useNavigate } from '@solidjs/router';
 import { client } from '../../utils/urql';
+import { formateDateForCalendar } from '../../utils/dateUtil';
 
 const CREATE_RESERVATION = `
   mutation CreateReservation($input: CreateReservationInput!) {
@@ -131,7 +132,7 @@ export default function Home() {
               <ListItemText primary="Phone" secondary={formData().phone} />
             </ListItem>
             <ListItem>
-              <ListItemText primary="Arrival Time" secondary={formData().arrivalTime} />
+              <ListItemText primary="Arrival Time" secondary={formateDateForCalendar(formData().arrivalTime)} />
             </ListItem>
             <ListItem>
               <ListItemText primary="Table Size" secondary={`${formData().tableSize} person`} />

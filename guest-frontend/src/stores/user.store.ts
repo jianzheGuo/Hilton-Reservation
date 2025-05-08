@@ -5,14 +5,16 @@ export const [userFromStore, setUserFromStore] = createStore({
   id: sessionUser?.id,
   username: sessionUser?.username,
   phone: sessionUser?.phone,
-  email: sessionUser?.email
+  email: sessionUser?.email,
+  role: sessionUser?.role,
 });
 
-export const updateUserFromStore = (data: {id: string, username: string, phone: string, email: string}) => {
+export const updateUserFromStore = (data: {id: string, username: string, phone: string, email: string, role:string}) => {
   setUserFromStore({
     id: data.id,
     username: data.username,
     phone: data.phone,
-    email: data.email
+    email: data.email,
+    role: data.role,
   });
 };

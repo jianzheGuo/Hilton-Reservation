@@ -108,8 +108,26 @@ export class ReserveService {
     } as ParentReserveType;
   }
 
-  async getAdminReservations(): Promise<showReserveType[]> {
+  async getAdminReservationsByFilter(
+    startDate?: string,
+    endDate?: string,
+    status?: string[],
+  ): Promise<showReserveType[]> {
+    const filterBuilder: Record<string, any> = {};
+
+    if (startDate || endDate) {
+      const dateCondition: Record<string, Date> = {};
+      if (startDate) dateCondition.$gte = new Date(startDate);
+      if (endDate) dateCondition.$lte = new Date(endDate);
+      filterBuilder.expected_arrive_time = dateCondition;
+    }
+
+    if (status?.length) {
+      filterBuilder.status = { $in: status };
+    }
+
     const reservations = await this.reserveModel.aggregate([
+      { $match: filterBuilder },
       {
         $sort: { expected_arrive_time: -1 },
       },

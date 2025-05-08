@@ -68,10 +68,18 @@ export class ReserveResolver {
   }
 
   @UseGuards(AuthGuard)
-  @Query(() => [showReserveType], { name: "getAdminReservations" })
-  async getAdminReservations(): Promise<showReserveType[]> {
+  @Query(() => [showReserveType], { name: "getAdminReservationsByFilter" })
+  async getAdminReservationsByFilter(
+    @Args("startDate", { nullable: true }) startDate?: string,
+    @Args("endDate", { nullable: true }) endDate?: string,
+    @Args("status", { type: () => [String], nullable: true }) status?: string[],
+  ): Promise<showReserveType[]> {
     try {
-      return await this.reserveService.getAdminReservations();
+      return await this.reserveService.getAdminReservationsByFilter(
+        startDate,
+        endDate,
+        status,
+      );
     } catch (error) {
       throw new Error(`Fail to get reservation: ${error.message}`);
     }

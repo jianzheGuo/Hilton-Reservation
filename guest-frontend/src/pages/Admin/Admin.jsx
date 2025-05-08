@@ -16,15 +16,15 @@ import {
   Button, 
   TextField, 
   Select, 
-  MenuItem
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@suid/material';
 import EditIcon from '@suid/icons-material/Edit';
 import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
 import { client } from '../../utils/urql';
 import { useAlert } from '../../components/Alert/Alert';
-import { userFromStore } from '../../stores/user.store';
-import { useNavigate } from '@solidjs/router';
 import { formateDateForCalendar } from '../../utils/dateUtil';
 
 const GET_USER_RESERVATIONS = `
@@ -41,9 +41,18 @@ const GET_USER_RESERVATIONS = `
   }
 `;
 
-const GET_ADMIN_RESERVATIONS = `
-  query GetAdminReservations {
-    getAdminReservations {
+const UPDATE_RESERVATION = `
+  mutation UpdateReservation($id: String!, $input: UpdateReservationInput!) {
+    updateReservation(id: $id, updateReservationInput: $input) {
+      _id
+      status
+    }
+  }
+`;
+
+const GET_ADMIN_RESERVATIONS_BY_FILTER = `
+  query GetAdminReservationsByFilter($startDate: String, $endDate: String, $status: [String!]) {
+    getAdminReservationsByFilter(startDate: $startDate, endDate: $endDate, status: $status) {
       _id
       guest_name
       guest_phone
@@ -60,27 +69,8 @@ const GET_ADMIN_RESERVATIONS = `
   }
 `;
 
-const UPDATE_RESERVATION = `
-  mutation UpdateReservation($id: String!, $input: UpdateReservationInput!) {
-    updateReservation(id: $id, updateReservationInput: $input) {
-      _id
-      status
-    }
-  }
-`;
-
-const CANCEL_RESERVATION = `
-  mutation CancelReservation($id: String!) {
-    cancelReservation(id: $id) {
-      _id
-      status
-    }
-  }
-`;
-
 export default function Admin() {
   const [editDialogOpen, setEditDialogOpen] = createSignal(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = createSignal(false);
   const [currentReservation, setCurrentReservation] = createSignal(null);
   const [editFormData, setEditFormData] = createSignal({
     name: '',
@@ -88,42 +78,48 @@ export default function Admin() {
     email: '',
     tableSize: 1,
     arrivalTime: '',
-    status: 'Approved' // 添加状态字段
+    status: 'Approved'
   });
-  
   const [order, setOrder] = createSignal('desc');
   const [orderBy, setOrderBy] = createSignal('expected_arrive_time');
+  const [filterStartDate, setFilterStartDate] = createSignal('');
+  const [filterEndDate, setFilterEndDate] = createSignal('');
+  const [filterStatus, setFilterStatus] = createSignal('');
   
   const { showAlert, AlertComponent } = useAlert();
-  const navigate = useNavigate();
-  
-  const fetchReservations = async () => {
-    try {
-      const result = await client.query(GET_USER_RESERVATIONS, { userId: userFromStore.id });
-      if (result.data?.getUserReservations) {
-        return result.data.getUserReservations;
-      }
-      return [];
-    } catch (error) {
-      showAlert('error', 'Failed to fetch reservations');
-      return [];
-    }
-  };
 
-  const fetchReservationsForAdmin = async () => {
+
+  const fetchReservationsByFilter = async () => {
+    let statusList = []
+    if(filterEndDate() != '' && filterStartDate() != '' && new Date(filterEndDate) < new Date(filterStartDate())){
+      showAlert('error', 'End date cannot be earlier than start date');
+      return;
+    }
+    if(filterStatus() === 'Select_All'){
+      statusList = ['Approved', 'Cancelled', 'Completed', 'Requested']
+    }else if (filterStatus() === ''){
+      statusList = []
+    } else {
+      statusList = [filterStatus()]
+    }
+
     try {
-      const result = await client.query(GET_ADMIN_RESERVATIONS, {}, {requestPolicy: 'network-only'});
-      if (result.data?.getAdminReservations) {
-        return result.data.getAdminReservations;
+      const res = await client.query(GET_ADMIN_RESERVATIONS_BY_FILTER, {
+        startDate: filterStartDate(),
+        endDate: filterEndDate(),
+        status: statusList
+      }, {requestPolicy: 'network-only'});
+      if (res.data?.getAdminReservationsByFilter) {
+        mutate(res.data.getAdminReservationsByFilter);
+        return res.data.getAdminReservationsByFilter;
       }
       return [];
     } catch (error) {
-      showAlert('error', 'Failed to fetcha reservations for admin');
+      showAlert('error', 'Failed to fetcha reservations for admin by filter');
       return [];
     }
-  };
-  
-  const [reservations, { mutate, refetch }] = createResource(fetchReservationsForAdmin);
+  }
+  const [reservations, { mutate, refetch }] = createResource(fetchReservationsByFilter);
   
   const handleEditClick = (reservation) => {
     setCurrentReservation(reservation);
@@ -155,7 +151,7 @@ export default function Admin() {
       if (result.data?.updateReservation) {
         showAlert('success', 'Reservation updated successfully');
         setEditDialogOpen(false);
-        const newData = await fetchReservationsForAdmin();
+        const newData = await fetchReservationsByFilter();
         mutate(newData);
       } else {
         showAlert('error', 'Reservation update failed');
@@ -196,6 +192,9 @@ export default function Admin() {
     if (!reservations || !Array.isArray(reservations)) return [];
     return [...reservations].sort(getComparator(order(), orderBy()));
   };
+
+
+  
   
   return (
     <Box sx={{ 
@@ -209,8 +208,62 @@ export default function Admin() {
           <h2>Admin Panel</h2>
         </Box>
         
-        <TableContainer component={Paper}>
-          <Table>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'row', 
+          gap: 2, 
+          mb: 3,
+          p: 2,
+          borderRadius: '4px'
+        }}>
+          <TextField
+            label="Start Date"
+            type="date"
+            value={filterStartDate()}
+            onChange={(e) => setFilterStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: '200px' }}
+          />
+          
+          <TextField
+            label="End Date"
+            type="date"
+            value={filterEndDate()}
+            onChange={(e) => setFilterEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: '200px' }}
+          />
+          
+          <FormControl sx={{ width: '200px' }}>
+            <InputLabel id="status-filter-label">Status</InputLabel>
+            <Select
+              labelId="status-filter-label"
+              value={filterStatus()}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              label="Status"
+            >
+              <MenuItem value="Select_All">Select All</MenuItem>
+              <MenuItem value="Approved">Approved</MenuItem>
+              <MenuItem value="Cancelled">Cancelled</MenuItem>
+              <MenuItem value="Completed">Completed</MenuItem>
+              <MenuItem value="Requested">Requested</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <Button 
+            variant="contained" 
+            onClick={fetchReservationsByFilter}
+            sx={{ minWidth: '100px' }}
+          >
+            Search
+          </Button>
+        </Box>
+        
+        <TableContainer component={Paper} sx={{ 
+          maxHeight: '60vh',
+          overflow: 'auto'
+        }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 

@@ -19,8 +19,6 @@ import {
   MenuItem
 } from '@suid/material';
 import EditIcon from '@suid/icons-material/Edit';
-import CancelIcon from '@suid/icons-material/Cancel';
-import ArrowBackIcon from '@suid/icons-material/ArrowBack';
 import AppHeader from '../../components/Header/Header';
 import AppFooter from '../../components/Footer/Footer';
 import { client } from '../../utils/urql';
@@ -43,6 +41,25 @@ const GET_USER_RESERVATIONS = `
   }
 `;
 
+const GET_ADMIN_RESERVATIONS = `
+  query GetAdminReservations {
+    getAdminReservations {
+      _id
+      guest_name
+      guest_phone
+      guest_email
+      table_size
+      expected_arrive_time
+      status
+      created_user_name
+      created_user
+      created_date
+      updated_date
+      updated_user
+    }
+  }
+`;
+
 const UPDATE_RESERVATION = `
   mutation UpdateReservation($id: String!, $input: UpdateReservationInput!) {
     updateReservation(id: $id, updateReservationInput: $input) {
@@ -61,7 +78,7 @@ const CANCEL_RESERVATION = `
   }
 `;
 
-export default function Reservation() {
+export default function Admin() {
   const [editDialogOpen, setEditDialogOpen] = createSignal(false);
   const [cancelDialogOpen, setCancelDialogOpen] = createSignal(false);
   const [currentReservation, setCurrentReservation] = createSignal(null);
@@ -70,7 +87,8 @@ export default function Reservation() {
     phone: '',
     email: '',
     tableSize: 1,
-    arrivalTime: ''
+    arrivalTime: '',
+    status: 'Approved' // 添加状态字段
   });
   
   const [order, setOrder] = createSignal('desc');
@@ -91,8 +109,21 @@ export default function Reservation() {
       return [];
     }
   };
+
+  const fetchReservationsForAdmin = async () => {
+    try {
+      const result = await client.query(GET_ADMIN_RESERVATIONS, {}, {requestPolicy: 'network-only'});
+      if (result.data?.getAdminReservations) {
+        return result.data.getAdminReservations;
+      }
+      return [];
+    } catch (error) {
+      showAlert('error', 'Failed to fetcha reservations for admin');
+      return [];
+    }
+  };
   
-  const [reservations, { mutate, refetch }] = createResource(fetchReservations);
+  const [reservations, { mutate, refetch }] = createResource(fetchReservationsForAdmin);
   
   const handleEditClick = (reservation) => {
     setCurrentReservation(reservation);
@@ -101,15 +132,10 @@ export default function Reservation() {
       phone: reservation.guest_phone,
       email: reservation.guest_email,
       tableSize: reservation.table_size,
-      arrivalTime: formateDateForCalendar(reservation.expected_arrive_time, true)
-      // new Date(reservation.expected_arrive_time).toISOString().slice(0, 16)
+      arrivalTime: new Date(reservation.expected_arrive_time).toISOString().slice(0, 16),
+      status: reservation.status || 'Approved' // 设置当前状态
     });
     setEditDialogOpen(true);
-  };
-  
-  const handleCancelClick = (reservation) => {
-    setCurrentReservation(reservation);
-    setCancelDialogOpen(true);
   };
   
   const handleEditSubmit = async () => {
@@ -121,14 +147,16 @@ export default function Reservation() {
           phone: editFormData().phone,
           email: editFormData().email,
           tableSize: editFormData().tableSize,
-          arrivalTime: formateDateForCalendar(editFormData().arrivalTime, true)
+          arrivalTime: editFormData().arrivalTime,
+          status: editFormData().status
         }
       });
       
       if (result.data?.updateReservation) {
         showAlert('success', 'Reservation updated successfully');
         setEditDialogOpen(false);
-        refetch();
+        const newData = await fetchReservationsForAdmin();
+        mutate(newData);
       } else {
         showAlert('error', 'Reservation update failed');
       }
@@ -136,24 +164,8 @@ export default function Reservation() {
       showAlert('error', error.message | 'Server error');
     }
   };
+
   
-  const handleCancelConfirm = async () => {
-    try {
-      const result = await client.mutation(CANCEL_RESERVATION, {
-        id: currentReservation()._id
-      });
-      
-      if (result.data?.cancelReservation) {
-        showAlert('success', 'Reservation cancelled successfully');
-        setCancelDialogOpen(false);
-        refetch();
-      } else {
-        showAlert('error', 'Reservation cancellation failed');
-      }
-    } catch (error) {
-      showAlert('error', error.message | 'Server error');
-    }
-  };
   
   const handleRequestSort = (property) => {
     const isAsc = orderBy() === property && order() === 'asc';
@@ -194,10 +206,7 @@ export default function Reservation() {
       <AppHeader />
       <Box component="main" sx={{ flex: 1, padding: '20px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <IconButton onClick={() => navigate('/home')} sx={{ mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <h2>My Reservations</h2>
+          <h2>Admin Panel</h2>
         </Box>
         
         <TableContainer component={Paper}>
@@ -215,6 +224,18 @@ export default function Reservation() {
                   onClick={() => handleRequestSort('table_size')}
                   sx={{ cursor: 'pointer', fontWeight: 'bold' }}
                 >Table Size {orderBy() === 'table_size' ? (order() === 'asc' ? '↑' : '↓') : ''}
+                </TableCell>
+                <TableCell
+                  onClick={() => handleRequestSort('created_user_name')}
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Created User {orderBy() === 'created_user_name' ? (order() === 'asc' ? '↑' : '↓') : ''}
+                </TableCell>
+                <TableCell
+                  onClick={() => handleRequestSort('created_date')}
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Created Date {orderBy() === 'created_date' ? (order() === 'asc' ? '↑' : '↓') : ''}
                 </TableCell>
                 <TableCell
                   onClick={() => handleRequestSort('status')}
@@ -235,20 +256,15 @@ export default function Reservation() {
                   <TableRow key={reservation._id}>
                     <TableCell>{formateDateForCalendar(reservation.expected_arrive_time, false)}</TableCell>
                     <TableCell>{reservation.table_size} Person</TableCell>
+                    <TableCell>{reservation.created_user_name}</TableCell>
+                    <TableCell>{formateDateForCalendar(reservation.created_date, false)}</TableCell>
                     <TableCell>{reservation.status}</TableCell>
                     <TableCell>
                       <IconButton 
                         onClick={() => handleEditClick(reservation)}
-                        disabled={reservation.status === 'Cancelled'}
+                        disabled={reservation.status === 'Cancelled' || reservation.status === 'Completed'}
                       >
                         <EditIcon />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => handleCancelClick(reservation)}
-                        disabled={reservation.status === 'Cancelled'}
-                        sx={{ color: '#d32f2f' }}
-                      >
-                        <CancelIcon />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -265,74 +281,56 @@ export default function Reservation() {
       <AppFooter />
       
       <Dialog open={editDialogOpen()} onClose={() => setEditDialogOpen(false)}>
-        <DialogTitle>Edit</DialogTitle>
+        <DialogTitle>Edit Reservation Info</DialogTitle>
         <DialogContent>
-          <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              label="Reservation Name"
-              value={editFormData().name}
-              onChange={(e) => setEditFormData({...editFormData(), name: e.target.value})}
-              fullWidth
-              required
-            />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Guest Name</Box>
+              <Box>{editFormData().name}</Box>
+            </Box>
             
-            <TextField
-              label="Phone"
-              value={editFormData().phone}
-              onChange={(e) => setEditFormData({...editFormData(), phone: e.target.value})}
-              fullWidth
-              required
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Phone</Box>
+              <Box>{editFormData().phone}</Box>
+            </Box>
             
-            <TextField
-              label="Email"
-              value={editFormData().email}
-              onChange={(e) => setEditFormData({...editFormData(), email: e.target.value})}
-              fullWidth
-              required
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Email</Box>
+              <Box>{editFormData().email}</Box>
+            </Box>
             
-            <TextField
-              label="Arrive Time"
-              type="datetime-local"
-              value={editFormData().arrivalTime}
-              onChange={(e) => setEditFormData({...editFormData(), arrivalTime: e.target.value})}
-              fullWidth
-              required
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Table Size</Box>
+              <Box>{editFormData().tableSize} Person</Box>
+            </Box>
             
-            <Select
-              label="Table Size"
-              value={editFormData().tableSize}
-              onChange={(e) => setEditFormData({...editFormData(), tableSize: e.target.value})}
-              fullWidth
-              required
-            >
-              {[1,2,3,4,5,6,7,8].map(size => (
-                <MenuItem value={size}>{size} 人</MenuItem>
-              ))}
-            </Select>
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Expected Arrive Time</Box>
+              <Box>{formateDateForCalendar(editFormData().arrivalTime, false)}</Box>
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}>
+              <Box sx={{ fontWeight: 'bold', width: '120px' }}>Status</Box>
+              <Select                
+                value={editFormData().status}
+                onChange={(e) => setEditFormData({...editFormData(), status: e.target.value})}
+                fullWidth
+              >
+                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Cancelled">Cancelled</MenuItem>
+                <MenuItem value="Completed">Completed</MenuItem>
+                {/* <MenuItem value="Completed">Requested</MenuItem> */}
+              </Select>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleEditSubmit} variant="contained" sx={{ backgroundColor: '#003580' }}>Save</Button>
+          <Button onClick={handleEditSubmit} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
       
-      <Dialog open={cancelDialogOpen()} onClose={() => setCancelDialogOpen(false)}>
-        <DialogTitle>Cancel Reservation</DialogTitle>
-        <DialogContent>
-          Do you want to cancel this reservation?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
-          <Button onClick={handleCancelConfirm} sx={{ color: '#d32f2f' }}>Yes</Button>
-        </DialogActions>
-      </Dialog>
+
       
       <AlertComponent />
     </Box>

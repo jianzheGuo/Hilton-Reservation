@@ -17,6 +17,7 @@ export class AuthService {
     username: string;
     phone: string;
     email: string;
+    role: string;
     access_token: string;
   }> {
     const user = await this.userService.getUserByPhone(phone);
@@ -34,6 +35,7 @@ export class AuthService {
       username: user.name,
       phone: user.phone_number,
       email: user.email,
+      role: user.role,
       access_token: await this.jwtService.signAsync(payload),
     };
   }

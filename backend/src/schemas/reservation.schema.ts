@@ -43,7 +43,7 @@ export class Reservation {
   @Field()
   updated_user: string;
 
-  @Prop({ required: true, default: "Pending" })
+  @Prop({ required: true, default: "Requested" })
   @Field()
   status: string;
 

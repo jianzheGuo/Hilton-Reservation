@@ -131,10 +131,16 @@ export default function Login() {
           id: response.id,
           username: response.username,
           phone: response.phone,
-          email: response.email
+          email: response.email,
+          role: response.role
         }));
         updateUserFromStore(response);
-        navigate('/home', { replace: true });
+        if(response.role == 'admin')
+          navigate('/admin', { replace: true });
+        else if(response.role == 'user')
+          navigate('/home', { replace: true });
+        else
+          showAlert('error', 'Invalid role. Please contact our support team.');
       } else {
         showAlert('error', 'Login failed. Please check your credentials and try again.');
       }

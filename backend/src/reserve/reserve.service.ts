@@ -1,16 +1,19 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Reservation } from "../schemas/reservation.schema";
+import { User } from "../schemas/user.schema";
 import { Model, Types } from "mongoose";
 import { ParentReserveType } from "./type/parent-reserve-type";
 import { CreateReservationInput } from "./dto/create-reservation.dto";
 import { CancelReserveType } from "./type/cancel-reserve-type";
 import { UpdateReservationInput } from "./dto/update-reservation.dto";
+import { showReserveType } from "./type/show-reserve-type";
 
 @Injectable()
 export class ReserveService {
   constructor(
     @InjectModel(Reservation.name) private reserveModel: Model<Reservation>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
   async createReservation(
     input: CreateReservationInput,
@@ -23,6 +26,9 @@ export class ReserveService {
       expected_arrive_time: input.arrivalTime,
       table_size: input.tableSize,
       created_user: input.createdUser,
+      updated_date: new Date(),
+      updated_user: input.createdUser,
+      status: "Requested",
     });
     return {
       ...saved.toObject(),
@@ -58,6 +64,7 @@ export class ReserveService {
   async updateReservation(input: {
     id: string;
     updateReservationInput: UpdateReservationInput;
+    user_id: string;
   }): Promise<ParentReserveType> {
     const updateData = {};
 
@@ -88,12 +95,64 @@ export class ReserveService {
 
     const updatedReservation = await this.reserveModel.findByIdAndUpdate(
       new Types.ObjectId(input.id),
-      updateData,
+      {
+        ...updateData,
+        updated_date: new Date(),
+        updated_user: input.user_id || "",
+      },
       { new: true },
     );
 
     return {
       ...(updatedReservation?.toObject() ?? {}),
     } as ParentReserveType;
+  }
+
+  async getAdminReservations(): Promise<showReserveType[]> {
+    const reservations = await this.reserveModel.aggregate([
+      {
+        $sort: { expected_arrive_time: -1 },
+      },
+      {
+        $addFields: {
+          created_user_obj_id: { $toObjectId: "$created_user" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "created_user_obj_id",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      {
+        $addFields: {
+          created_user_name: {
+            $cond: {
+              if: { $gt: [{ $size: "$user_info" }, 0] },
+              then: { $arrayElemAt: ["$user_info.name", 0] },
+              else: "Unknown User",
+            },
+          },
+          updated_user: {
+            $ifNull: ["$updated_user", "Unknown User"],
+          },
+          updated_date: {
+            $ifNull: ["$updated_date", new Date("1970-01-01T00:00:00.000Z")],
+          },
+          status: {
+            $ifNull: ["$status", "Requested"],
+          },
+        },
+      },
+      {
+        $project: {
+          user_info: 0,
+        },
+      },
+    ]);
+
+    return reservations as showReserveType[];
   }
 }

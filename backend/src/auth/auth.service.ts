@@ -22,7 +22,10 @@ export class AuthService {
   }> {
     const user = await this.userService.getUserByPhone(phone);
     if (user?.password !== pass) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException({
+        message: "Invalid phone or password",
+        code: "AUTH_001",
+      });
     }
     const payload = {
       sub: user._id.toString(),

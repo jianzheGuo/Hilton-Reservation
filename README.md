@@ -32,6 +32,7 @@ A full-stack hotel reservation management system built with modern web technolog
 
 - AWS EC2 : For hosting the application
                                                                   
+![image](https://github.com/user-attachments/assets/bc8eec83-b16e-4878-8250-5e345d87af2b)
 
 
 ---------------------------------------------------------------------------------------------
@@ -39,22 +40,8 @@ A full-stack hotel reservation management system built with modern web technolog
 
 ## Project Structure
 
-Hilton-Reservation/
-├── backend/                 # NestJS backend application
-│   ├── src/
-│   │   ├── app.module.ts    # Main application module
-│   │   ├── schemas/         # MongoDB schema definitions
-│   │   ├── reserve/         # Reservation module with services and controllers
-│   │   └── ...
-│   ├── test/                # Test files
-│   └── ...
-├── guest-frontend/          # SolidJS frontend application
-│   ├── src/
-│   │   ├── components/      # UI components
-│   │   ├── pages/           # Page components
-│   │   └── ...
-│   └── ...
-└── docker-compose.yml       # Docker Compose configuration
+![image](https://github.com/user-attachments/assets/26d62005-8b88-48fa-b48b-6962385ab796)
+
 
 
 # The Reason for organizing the project structure:
